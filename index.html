@@ -1,0 +1,1464 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>wpelimioobe — Simulador Windows OOBE & Easter Eggs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    :root {
+      --win-blue: #0067c0;
+      --win-blue-hover: #005a9e;
+      --win-bg-light: #f3f6fb;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      background-color: #0b192c;
+      color: #1a1a1a;
+    }
+
+    .font-mono-cmd {
+      font-family: 'Consolas', 'JetBrains Mono', monospace;
+    }
+
+    /* Fundo animado estilo Windows 11 Bloom / OOBE */
+    .win11-backdrop {
+      background: radial-gradient(circle at 15% 20%, rgba(56, 189, 248, 0.25) 0%, transparent 45%),
+                  radial-gradient(circle at 85% 80%, rgba(37, 99, 235, 0.3) 0%, transparent 50%),
+                  linear-gradient(135deg, #e8f1fc 0%, #dbeafe 45%, #eff6ff 100%);
+    }
+
+    /* Anel de carregamento clássico Windows 10/11 */
+    .win-spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(0, 103, 192, 0.2);
+      border-top-color: #0067c0;
+      border-radius: 50%;
+      animation: winSpin 0.9s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;
+    }
+
+    .win-spinner-white {
+      width: 44px;
+      height: 44px;
+      border: 3.5px solid rgba(255, 255, 255, 0.25);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: winSpin 0.9s cubic-bezier(0.55, 0.15, 0.45, 0.85) infinite;
+    }
+
+    @keyframes winSpin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Transição suave entre etapas do OOBE */
+    .oobe-step-enter {
+      animation: stepFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes stepFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* Animação do anel da Cortana */
+    @keyframes cortanaPulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(0, 183, 255, 0.7), inset 0 0 12px rgba(0, 183, 255, 0.8);
+      }
+      50% {
+        transform: scale(1.12);
+        box-shadow: 0 0 0 12px rgba(0, 183, 255, 0), inset 0 0 18px rgba(56, 189, 248, 1);
+      }
+    }
+
+    .cortana-orb {
+      animation: cortanaPulse 2s infinite ease-in-out;
+    }
+
+    /* Gradiente dinâmico da tela final "Estamos preparando tudo para você" */
+    .preparing-gradient {
+      background: linear-gradient(-45deg, #003366, #005a9e, #0078d4, #001f3f);
+      background-size: 400% 400%;
+      animation: gradientShift 10s ease infinite;
+    }
+
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Barra de rolagem customizada */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(100, 116, 139, 0.35);
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(100, 116, 139, 0.6);
+    }
+
+    /* Toggle Switch estilo Windows 11 */
+    .win-toggle-checkbox:checked + .win-toggle-label {
+      background-color: #0067c0;
+      border-color: #0067c0;
+    }
+    .win-toggle-checkbox:checked + .win-toggle-label .win-toggle-dot {
+      transform: translateX(20px);
+      background-color: #ffffff;
+    }
+  </style>
+</head>
+<body class="min-h-screen w-full flex flex-col justify-between win11-backdrop relative overflow-x-hidden">
+
+  <!-- Barra Superior Discreta com Branding 'wpelimioobe' e Status -->
+  <header id="top-bar" class="w-full px-4 py-2.5 flex flex-wrap items-center justify-between gap-2 z-30 bg-white/60 backdrop-blur-md border-b border-slate-200/80">
+    <div class="flex items-center gap-3">
+      <!-- Logo Windows / wpelimioobe clicável (5 cliques = Easter Egg Provisionamento) -->
+      <button id="brand-logo-btn" title="Clique 5 vezes para Provisionamento Oculto" class="flex items-center gap-2.5 px-2.5 py-1 rounded-lg hover:bg-blue-50/80 transition active:scale-95 cursor-pointer group">
+        <div class="grid grid-cols-2 gap-0.5 w-5 h-5">
+          <span class="bg-[#0067c0] rounded-[1px] group-hover:bg-sky-500 transition"></span>
+          <span class="bg-[#0067c0] rounded-[1px] group-hover:bg-sky-500 transition"></span>
+          <span class="bg-[#0067c0] rounded-[1px] group-hover:bg-sky-500 transition"></span>
+          <span class="bg-[#0067c0] rounded-[1px] group-hover:bg-sky-500 transition"></span>
+        </div>
+        <span class="font-bold tracking-tight text-slate-800 text-base sm:text-lg">wpelimioobe</span>
+        <span class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">OOBE v11.26H2</span>
+      </button>
+    </div>
+
+    <div class="flex items-center gap-2 sm:gap-3">
+      <!-- Status BypassNRO -->
+      <span id="bypass-badge" class="hidden text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+        ✓ BYPASSNRO Ativo
+      </span>
+
+      <!-- Botão de Som -->
+      <button id="sound-toggle-btn" class="p-2 rounded-lg bg-white/80 hover:bg-white text-slate-700 border border-slate-200 shadow-xs transition text-xs font-medium flex items-center gap-1.5" title="Ativar/Desativar Áudio Sintetizado">
+        <span id="sound-icon">🔊</span>
+        <span class="hidden sm:inline" id="sound-text">Som Ativo</span>
+      </button>
+
+      <!-- Botão Guia de Easter Eggs -->
+      <button id="easter-guide-btn" class="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-medium shadow-sm transition flex items-center gap-2 cursor-pointer">
+        <span>🥚 Easter Eggs</span>
+        <span id="easter-counter" class="px-1.5 py-0.5 text-[11px] rounded-md bg-amber-400 text-slate-950 font-bold">0/7</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Toast / Notificação de Easter Egg Descoberto -->
+  <div id="easter-toast" class="fixed top-16 right-4 z-50 max-w-sm bg-slate-900/95 text-white px-4 py-3 rounded-xl shadow-2xl border border-amber-400/50 backdrop-blur-md transform translate-x-[120%] transition-transform duration-300 flex items-start gap-3">
+    <div class="text-2xl">🏆</div>
+    <div>
+      <div class="text-xs uppercase tracking-wider text-amber-400 font-bold">Easter Egg Descoberto!</div>
+      <div id="easter-toast-title" class="font-semibold text-sm mt-0.5">Segredo Desbloqueado</div>
+      <div id="easter-toast-desc" class="text-xs text-slate-300 mt-0.5">Descrição do segredo.</div>
+    </div>
+  </div>
+
+  <!-- Área Principal do Simulador OOBE -->
+  <main id="oobe-main" class="flex-1 w-full flex items-center justify-center p-3 sm:p-6 relative z-10">
+
+    <!-- Cartão Central do Windows OOBE -->
+    <div id="oobe-card" class="w-full max-w-4xl bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,40,90,0.22)] border border-white overflow-hidden transition-all duration-300 min-h-[500px] flex flex-col">
+
+      <!-- Conteúdo Dinâmico das Etapas -->
+      <div id="oobe-content" class="flex-1 p-6 sm:p-10 flex flex-col justify-between">
+        <!-- Renderizado via JS -->
+      </div>
+
+      <!-- Rodapé de Acessibilidade & Atalhos Estilo Windows OOBE -->
+      <div id="oobe-card-footer" class="px-6 py-3 bg-slate-50/90 border-t border-slate-200/70 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+        <div class="flex items-center gap-2">
+          <span class="font-semibold text-slate-700">wpelimioobe</span>
+          <span>•</span>
+          <span id="step-indicator">Etapa 0 de 8</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- Ícone de Rede -->
+          <button onclick="openShortcutModal()" class="p-1.5 rounded-md hover:bg-slate-200/70 text-slate-600 transition" title="Atalhos Rápidos OOBE">
+            ⌨️ Atalhos
+          </button>
+          <!-- Botão Cortana / Narrador -->
+          <button onclick="triggerCortana()" class="p-1.5 rounded-md hover:bg-blue-100 text-blue-700 transition flex items-center gap-1 font-medium" title="Ctrl + Win + Enter">
+            🎙️ Cortana / Narrador
+          </button>
+          <!-- Botão Acessibilidade -->
+          <button onclick="toggleHighContrast()" class="p-1.5 rounded-md hover:bg-slate-200/70 text-slate-600 transition" title="Alternar Contraste">
+            ♿ Acessibilidade
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Tela Cheia: Preparando tudo para você (Etapa 8) -->
+  <div id="preparing-screen" class="hidden fixed inset-0 z-40 preparing-gradient text-white flex flex-col items-center justify-center p-6 text-center">
+    <div class="max-w-xl space-y-6 oobe-step-enter">
+      <div class="inline-block px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-xs font-semibold tracking-widest uppercase">
+        wpelimioobe OS
+      </div>
+      <h1 id="preparing-title" class="text-4xl sm:text-6xl font-light tracking-tight">Olá</h1>
+      <p id="preparing-subtitle" class="text-lg sm:text-2xl font-light text-blue-100">Estamos preparando tudo para você.</p>
+      <div class="pt-4 flex justify-center">
+        <div class="win-spinner-white"></div>
+      </div>
+      <p class="text-xs sm:text-sm text-blue-200/80 pt-8">Isso pode levar alguns minutos. Não desligue o computador.</p>
+    </div>
+  </div>
+
+  <!-- Tela Cheia: Área de Trabalho Funcional do wpelimioobe OS (Etapa Final) -->
+  <div id="desktop-screen" class="hidden fixed inset-0 z-40 bg-cover bg-center flex flex-col justify-between overflow-hidden" style="background-image: radial-gradient(circle at 30% 30%, #1d4ed8, #0f172a 75%);">
+    <!-- Ícones da Área de Trabalho -->
+    <div class="p-5 grid grid-cols-1 gap-5 w-32">
+      <button onclick="openCmd()" class="flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-white/15 text-white transition group cursor-pointer">
+        <div class="w-12 h-12 rounded-xl bg-slate-900 border border-slate-600 flex items-center justify-center text-lg font-mono-cmd text-emerald-400 shadow-lg group-hover:scale-105 transition">
+          C:\&gt;
+        </div>
+        <span class="text-xs font-medium drop-shadow text-center">Prompt de Comando</span>
+      </button>
+
+      <button onclick="openEasterGuide()" class="flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-white/15 text-white transition group cursor-pointer">
+        <div class="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center text-2xl shadow-lg group-hover:scale-105 transition">
+          🥚
+        </div>
+        <span class="text-xs font-medium drop-shadow text-center">Segredos OOBE</span>
+      </button>
+
+      <button onclick="restartOOBE()" class="flex flex-col items-center gap-1.5 p-2 rounded-lg hover:bg-white/15 text-white transition group cursor-pointer">
+        <div class="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-400/50 flex items-center justify-center text-2xl shadow-lg group-hover:scale-105 transition">
+          🔄
+        </div>
+        <span class="text-xs font-medium drop-shadow text-center">Reiniciar OOBE</span>
+      </button>
+    </div>
+
+    <!-- Janela de Boas-Vindas no Desktop -->
+    <div class="m-auto max-w-lg w-[92%] bg-slate-900/85 backdrop-blur-xl border border-white/15 rounded-2xl p-6 text-white shadow-2xl text-center space-y-4">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-semibold">
+        <span>✨ Configuração Concluída</span>
+      </div>
+      <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Bem-vindo ao <span class="text-sky-400">wpelimioobe</span>!</h2>
+      <p class="text-sm text-slate-300 leading-relaxed">
+        Você concluiu o fluxo do Windows OOBE como <strong id="desktop-username" class="text-white">Usuário</strong> (<span id="desktop-account-type" class="text-sky-300">Conta Local</span>).
+      </p>
+      <div class="bg-slate-950/60 rounded-xl p-3.5 border border-white/10 text-xs text-slate-300 flex items-center justify-between">
+        <span>Easter Eggs Descobertos:</span>
+        <span id="desktop-easter-summary" class="font-bold text-amber-400 text-sm">0 / 7</span>
+      </div>
+      <div class="flex flex-wrap justify-center gap-3 pt-2">
+        <button onclick="openEasterGuide()" class="px-4 py-2 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-semibold text-sm transition cursor-pointer">
+          Ver Todos os Easter Eggs
+        </button>
+        <button onclick="restartOOBE()" class="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium text-sm transition cursor-pointer">
+          Refazer OOBE
+        </button>
+      </div>
+    </div>
+
+    <!-- Barra de Tarefas Estilo Windows 11 -->
+    <div class="h-12 w-full bg-slate-950/85 backdrop-blur-xl border-t border-white/10 px-4 flex items-center justify-between text-white">
+      <div class="text-xs font-semibold text-sky-400 tracking-wide">wpelimioobe OS</div>
+      <div class="flex items-center gap-2">
+        <button onclick="openCmd()" class="p-2 rounded-lg hover:bg-white/10 transition" title="Iniciar / CMD">
+          <div class="grid grid-cols-2 gap-0.5 w-4 h-4">
+            <span class="bg-sky-400 rounded-[1px]"></span>
+            <span class="bg-sky-400 rounded-[1px]"></span>
+            <span class="bg-sky-400 rounded-[1px]"></span>
+            <span class="bg-sky-400 rounded-[1px]"></span>
+          </div>
+        </button>
+        <button onclick="triggerCortana()" class="p-2 rounded-lg hover:bg-white/10 transition text-sm" title="Cortana">
+          🔵
+        </button>
+      </div>
+      <div id="desktop-clock" class="text-xs text-slate-300 font-medium">18:30</div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- OVERLAYS DOS EASTER EGGS DO WINDOWS OOBE                  -->
+  <!-- ========================================================= -->
+
+  <!-- 1. PROMPT DE COMANDO (Shift + F10) -->
+  <div id="cmd-window" class="hidden fixed inset-4 sm:inset-auto sm:top-16 sm:left-1/2 sm:-translate-x-1/2 sm:w-[680px] sm:h-[430px] z-50 bg-[#0c0c0c] text-[#cccccc] rounded-lg shadow-2xl border border-slate-600 flex flex-col overflow-hidden font-mono-cmd">
+    <!-- Barra de título do CMD -->
+    <div class="bg-[#1f1f1f] px-3 py-1.5 flex items-center justify-between border-b border-slate-700 select-none">
+      <div class="flex items-center gap-2 text-xs text-white">
+        <span class="bg-black text-white px-1 border border-slate-500 text-[10px]">C:\</span>
+        <span>Administrador: C:\Windows\System32\cmd.exe — wpelimioobe</span>
+      </div>
+      <button onclick="closeCmd()" class="text-slate-400 hover:text-white hover:bg-red-600 px-2 py-0.5 rounded text-xs transition cursor-pointer">✕</button>
+    </div>
+    <!-- Corpo do Terminal -->
+    <div id="cmd-output" class="flex-1 p-3 overflow-y-auto text-xs sm:text-sm space-y-1 leading-relaxed select-text" onclick="document.getElementById('cmd-input').focus()">
+      <div>Microsoft Windows [Versão 10.0.26100.1742 - wpelimioobe Edition]</div>
+      <div>(c) Microsoft Corporation &amp; wpelimioobe. Todos os direitos reservados.</div>
+      <div class="text-amber-400 pt-1">Dica OOBE: Digite <span class="underline">oobe\bypassnro</span>, <span class="underline">start ms-cxh:localonly</span>, <span class="underline">taskmgr</span> ou <span class="underline">help</span>.</div>
+      <div class="pt-1"></div>
+    </div>
+    <!-- Linha de Entrada -->
+    <div class="px-3 py-2 bg-[#0c0c0c] border-t border-slate-800 flex items-center gap-1.5 text-xs sm:text-sm">
+      <span class="text-white shrink-0">X:\Sources&gt;</span>
+      <input id="cmd-input" type="text" autocomplete="off" spellcheck="false" class="w-full bg-transparent text-white outline-none font-mono-cmd" placeholder="Digite um comando..." />
+    </div>
+  </div>
+
+  <!-- 2. GERENCIADOR DE TAREFAS (taskmgr) -->
+  <div id="taskmgr-window" class="hidden fixed inset-4 sm:inset-auto sm:top-20 sm:left-1/2 sm:-translate-x-1/2 sm:w-[540px] z-50 bg-white text-slate-900 rounded-xl shadow-2xl border border-slate-300 flex flex-col overflow-hidden">
+    <div class="bg-slate-100 px-4 py-2.5 flex items-center justify-between border-b border-slate-200">
+      <div class="flex items-center gap-2 font-semibold text-sm">
+        <span>📊</span>
+        <span>Gerenciador de Tarefas — wpelimioobe</span>
+      </div>
+      <button onclick="document.getElementById('taskmgr-window').classList.add('hidden')" class="text-slate-500 hover:text-red-600 font-bold px-2">✕</button>
+    </div>
+    <div class="p-4 text-xs space-y-2 max-h-80 overflow-y-auto">
+      <div class="grid grid-cols-4 font-bold text-slate-500 pb-1 border-b">
+        <span class="col-span-2">Processo</span>
+        <span>CPU / RAM</span>
+        <span class="text-right">Ação</span>
+      </div>
+      <div class="grid grid-cols-4 items-center py-1.5 border-b border-slate-100">
+        <span class="col-span-2 font-medium">WWAHost.exe (Fluxo OOBE)</span>
+        <span class="text-slate-500">12% / 184 MB</span>
+        <button onclick="killProcess('WWAHost.exe')" class="ml-auto px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded font-semibold">Finalizar</button>
+      </div>
+      <div class="grid grid-cols-4 items-center py-1.5 border-b border-slate-100">
+        <span class="col-span-2 font-medium">UserOOBEBroker.exe</span>
+        <span class="text-slate-500">4% / 62 MB</span>
+        <button onclick="killProcess('UserOOBEBroker.exe')" class="ml-auto px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded font-semibold">Finalizar</button>
+      </div>
+      <div class="grid grid-cols-4 items-center py-1.5 border-b border-slate-100">
+        <span class="col-span-2 font-medium">CortanaVoiceAssist.exe</span>
+        <span class="text-slate-500">2% / 95 MB</span>
+        <button onclick="killProcess('Cortana')" class="ml-auto px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded font-semibold">Finalizar</button>
+      </div>
+      <div class="grid grid-cols-4 items-center py-1.5">
+        <span class="col-span-2 font-medium">wpelimioobe_core.sys</span>
+        <span class="text-slate-500">1% / 32 MB</span>
+        <span class="ml-auto text-slate-400 italic">Protegido</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. PAINEL DE DIAGNÓSTICO DO DESENVOLVEDOR (Ctrl + Shift + D) -->
+  <div id="diag-panel" class="hidden fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-[420px] z-50 bg-slate-900/95 text-slate-100 rounded-xl shadow-2xl border border-sky-500/40 backdrop-blur-md p-4 text-xs space-y-3">
+    <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+      <div class="flex items-center gap-2 font-bold text-sky-400">
+        <span>🛠️</span>
+        <span>OOBE Developer Diagnostics (Ctrl+Shift+D)</span>
+      </div>
+      <button onclick="document.getElementById('diag-panel').classList.add('hidden')" class="text-slate-400 hover:text-white">✕</button>
+    </div>
+    <div class="grid grid-cols-2 gap-2 bg-slate-950/70 p-2.5 rounded-lg font-mono-cmd text-[11px]">
+      <div>Build: <span class="text-emerald-400">wpelimioobe.26100</span></div>
+      <div>Etapa Atual: <span id="diag-step" class="text-amber-400">0</span></div>
+      <div>BypassNRO: <span id="diag-bypass" class="text-sky-400">false</span></div>
+      <div>Rede: <span id="diag-net" class="text-sky-400">Desconectado</span></div>
+    </div>
+    <div id="diag-logs" class="h-28 overflow-y-auto bg-black/60 p-2 rounded font-mono-cmd text-[11px] text-emerald-300 space-y-1">
+      <div>[INFO] Inicializando kernel wpelimioobe OOBE...</div>
+    </div>
+    <div class="flex flex-wrap gap-2 pt-1">
+      <button onclick="nextStep()" class="px-2.5 py-1.5 bg-sky-600 hover:bg-sky-500 rounded font-semibold text-white">Pular Etapa &rarr;</button>
+      <button onclick="activateBypassNRO()" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded font-semibold text-white">Forçar BypassNRO</button>
+      <button onclick="jumpToLocalAccount()" class="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-500 rounded font-semibold text-white">Conta Local Direta</button>
+    </div>
+  </div>
+
+  <!-- 4. MODAL AUTOPILOT / KIOSK (Ctrl + Shift + J) -->
+  <div id="autopilot-modal" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 oobe-step-enter">
+      <div class="flex items-center gap-3 text-blue-700">
+        <div class="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-xl">🏢</div>
+        <div>
+          <h3 class="font-bold text-lg text-slate-900">Windows Autopilot &amp; Modo Kiosk</h3>
+          <p class="text-xs text-slate-500">Atalho Secreto Ctrl + Shift + J</p>
+        </div>
+      </div>
+      <p class="text-sm text-slate-600 leading-relaxed">
+        Este dispositivo <strong>wpelimioobe</strong> está pronto para registro corporativo MDM / Intune ou configuração de Quiosque de Assinatura Digital.
+      </p>
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs space-y-1 font-mono-cmd text-slate-700">
+        <div>Tenant ID: <span class="text-blue-600">wpelimioobe-corp.onmicrosoft.com</span></div>
+        <div>Hardware Hash: <span class="text-slate-500">0x99F2A8...WPELIMIOOBE</span></div>
+        <div>Perfil: <span class="text-emerald-600">Zero-Touch Deployment</span></div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="document.getElementById('autopilot-modal').classList.add('hidden')" class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium">Fechar</button>
+        <button onclick="applyAutopilotProfile()" class="px-4 py-2 rounded-lg bg-[#0067c0] hover:bg-[#005a9e] text-white text-sm font-medium">Aplicar Perfil Autopilot</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. MODAL PROVISIONAMENTO USB / 5 CLIQUES (5x Logo Windows/wpelimioobe) -->
+  <div id="provisioning-modal" class="hidden fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 oobe-step-enter">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl">🔌</div>
+        <div>
+          <h3 class="font-bold text-lg text-slate-900">Provisionamento do Dispositivo</h3>
+          <p class="text-xs text-slate-500">Ativado por 5 cliques rápidos no logo Windows / wpelimioobe</p>
+        </div>
+      </div>
+      <p class="text-sm text-slate-600">
+        Deseja instalar um pacote de provisionamento (<code class="bg-slate-100 px-1 rounded">.ppkg</code>) a partir de uma unidade removível ou redefinir este PC?
+      </p>
+      <div class="space-y-2">
+        <button onclick="installPPKG()" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition flex items-center justify-between">
+          <div>
+            <div class="font-semibold text-sm text-slate-800">Instalar pacote wpelimioobe_pro.ppkg</div>
+            <div class="text-xs text-slate-500">Configura automaticamente rede, conta e privacidade</div>
+          </div>
+          <span class="text-blue-600 font-bold">&rarr;</span>
+        </button>
+        <button onclick="restartOOBE(); document.getElementById('provisioning-modal').classList.add('hidden')" class="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-amber-500 hover:bg-amber-50/50 transition flex items-center justify-between">
+          <div>
+            <div class="font-semibold text-sm text-slate-800">Redefinir fluxo OOBE</div>
+            <div class="text-xs text-slate-500">Reinicia a experiência de fábrica</div>
+          </div>
+          <span class="text-amber-600 font-bold">↺</span>
+        </button>
+      </div>
+      <div class="flex justify-end">
+        <button onclick="document.getElementById('provisioning-modal').classList.add('hidden')" class="px-4 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. BOLHA FLUTUANTE DA CORTANA / NARRADOR (Ctrl + Win + Enter) -->
+  <div id="cortana-widget" class="hidden fixed bottom-16 right-4 sm:right-8 z-50 max-w-xs sm:max-w-sm bg-slate-900/95 text-white p-4 rounded-2xl shadow-2xl border border-sky-400/50 backdrop-blur-xl flex items-start gap-3.5 oobe-step-enter">
+    <div class="w-11 h-11 rounded-full border-4 border-sky-400 bg-sky-950 shrink-0 cortana-orb flex items-center justify-center">
+      <div class="w-4 h-4 rounded-full bg-white/90"></div>
+    </div>
+    <div class="flex-1 space-y-1">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-sky-400 uppercase tracking-wider">Cortana • Narrador OOBE</span>
+        <button onclick="closeCortana()" class="text-slate-400 hover:text-white text-xs">✕</button>
+      </div>
+      <p id="cortana-speech-text" class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+        "Olá! Eu sou a Cortana, e estou aqui para ajudar você a configurar o wpelimioobe."
+      </p>
+    </div>
+  </div>
+
+  <!-- 7. MODAL GUIA DE EASTER EGGS & ATALHOS MOBILE -->
+  <div id="easter-guide-modal" class="hidden fixed inset-0 z-50 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden oobe-step-enter">
+      <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <div>
+          <h3 class="font-bold text-lg flex items-center gap-2">
+            <span>🥚</span>
+            <span>Guia Secreto dos Easter Eggs — wpelimioobe</span>
+          </h3>
+          <p class="text-xs text-slate-400">Descubra todos os 7 segredos reais do Windows OOBE (ou teste-os com 1 clique)</p>
+        </div>
+        <button onclick="closeEasterGuide()" class="text-slate-400 hover:text-white text-lg px-2 cursor-pointer">✕</button>
+      </div>
+      <div id="easter-list-container" class="p-5 overflow-y-auto space-y-3 text-sm">
+        <!-- Preenchido dinamicamente -->
+      </div>
+      <div class="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
+        <span>Dica: Todos os atalhos de teclado também funcionam!</span>
+        <button onclick="closeEasterGuide()" class="px-4 py-2 rounded-lg bg-[#0067c0] text-white font-semibold hover:bg-[#005a9e] cursor-pointer">Continuar OOBE</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. SINTETIZADOR DE ÁUDIO WEB AUDIO API (Sem arquivos externos)
+    // =========================================================================
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playTone(freq, type = 'sine', duration = 0.15, vol = 0.12, delay = 0) {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime + delay);
+
+        gain.gain.setValueAtTime(0.001, this.ctx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(vol, this.ctx.currentTime + delay + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + duration);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(this.ctx.currentTime + delay);
+        osc.stop(this.ctx.currentTime + delay + duration + 0.02);
+      }
+
+      click() {
+        this.playTone(620, 'sine', 0.06, 0.08);
+      }
+
+      nextStep() {
+        this.playTone(523.25, 'sine', 0.14, 0.09, 0);
+        this.playTone(659.25, 'sine', 0.18, 0.09, 0.07);
+      }
+
+      easterEgg() {
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((n, i) => this.playTone(n, 'triangle', 0.22, 0.12, i * 0.08));
+      }
+
+      error() {
+        this.playTone(180, 'sawtooth', 0.25, 0.12, 0);
+        this.playTone(145, 'sawtooth', 0.3, 0.12, 0.14);
+      }
+
+      cortanaChime() {
+        this.playTone(587.33, 'sine', 0.25, 0.1, 0);
+        this.playTone(880.00, 'sine', 0.35, 0.1, 0.12);
+      }
+
+      winStartup() {
+        // Acorde inspirado na inicialização moderna do Windows 11
+        const chord = [261.63, 329.63, 392.00, 493.88, 587.33];
+        chord.forEach((n, idx) => {
+          this.playTone(n, 'sine', 1.4, 0.08, idx * 0.14);
+        });
+      }
+    }
+
+    const sfx = new SoundEngine();
+
+    // =========================================================================
+    // 2. ESTADO GLOBAL DO SIMULADOR & EASTER EGGS
+    // =========================================================================
+    const state = {
+      step: 0,
+      region: 'Portugal',
+      keyboard: 'Português (Portugal ABNT/ISO)',
+      secondKeyboard: false,
+      wifiConnected: false,
+      wifiName: '',
+      bypassNRO: false,
+      accountName: '',
+      accountEmail: '',
+      isLocalAccount: false,
+      pin: '',
+      privacy: {
+        location: true,
+        diagnostics: false,
+        ads: false,
+        tailored: false
+      },
+      highContrast: false,
+      logoClicks: 0,
+      logoClickTimer: null,
+      discoveredEggs: new Set()
+    };
+
+    const EASTER_EGGS_META = [
+      {
+        id: 'cmd',
+        title: 'Prompt de Comando (Shift + F10)',
+        shortcut: 'Shift + F10',
+        desc: 'Abre o terminal administrativo X:\\Sources> sobre o instalador do Windows.',
+        actionLabel: 'Abrir CMD',
+        action: () => openCmd()
+      },
+      {
+        id: 'bypassnro',
+        title: 'Comando OOBE\\BYPASSNRO',
+        shortcut: 'Digite oobe\\bypassnro no CMD',
+        desc: 'Reinicia o OOBE desbloqueando o botão "Não tenho internet" e contas locais.',
+        actionLabel: 'Executar BypassNRO',
+        action: () => activateBypassNRO()
+      },
+      {
+        id: 'localonly',
+        title: 'Atalho start ms-cxh:localonly',
+        shortcut: 'CMD: start ms-cxh:localonly',
+        desc: 'Pula a exigência de Conta Microsoft diretamente para criação de Conta Local.',
+        actionLabel: 'Pular para Conta Local',
+        action: () => jumpToLocalAccount()
+      },
+      {
+        id: 'nothankyou',
+        title: 'Truque no@thankyou.com',
+        shortcut: 'E-mail: no@thankyou.com',
+        desc: 'Inserir uma conta bloqueada famosa força o OOBE a liberar uma conta offline.',
+        actionLabel: 'Testar na Etapa 5',
+        action: () => { goToStep(5); setTimeout(() => { const inp = document.getElementById('ms-email-input'); if(inp) inp.value = 'no@thankyou.com'; }, 100); }
+      },
+      {
+        id: 'diagnostics',
+        title: 'Painel de Diagnóstico (Ctrl + Shift + D)',
+        shortcut: 'Ctrl + Shift + D',
+        desc: 'Exibe logs internos de desenvolvedor do wpelimioobe e controles de salto.',
+        actionLabel: 'Abrir Diagnóstico',
+        action: () => openDiagnostics()
+      },
+      {
+        id: 'autopilot',
+        title: 'Windows Autopilot / Kiosk (Ctrl + Shift + J)',
+        shortcut: 'Ctrl + Shift + J',
+        desc: 'Abre a tela oculta de provisionamento corporativo MDM e modo Quiosque.',
+        actionLabel: 'Abrir Autopilot',
+        action: () => openAutopilot()
+      },
+      {
+        id: 'cortana_prov',
+        title: 'Cortana (Ctrl+Win+Enter) ou 5x Logo',
+        shortcut: 'Ctrl+Win+Enter ou 5 Cliques no Logo',
+        desc: 'Ativa a assistente de voz Cortana/Narrador ou o pacote de provisionamento USB.',
+        actionLabel: 'Ativar Cortana',
+        action: () => triggerCortana()
+      }
+    ];
+
+    function unlockEasterEgg(id, customTitle, customDesc) {
+      const meta = EASTER_EGGS_META.find(e => e.id === id);
+      const isNew = !state.discoveredEggs.has(id);
+      state.discoveredEggs.add(id);
+
+      document.getElementById('easter-counter').textContent = `${state.discoveredEggs.size}/7`;
+      addDiagLog(`[EASTER EGG] Descoberto: ${customTitle || (meta && meta.title) || id}`);
+
+      if (isNew) {
+        sfx.easterEgg();
+        const toast = document.getElementById('easter-toast');
+        document.getElementById('easter-toast-title').textContent = customTitle || (meta && meta.title) || 'Segredo Descoberto!';
+        document.getElementById('easter-toast-desc').textContent = customDesc || (meta && meta.desc) || '';
+        toast.classList.remove('translate-x-[120%]');
+        setTimeout(() => {
+          toast.classList.add('translate-x-[120%]');
+        }, 4200);
+      }
+    }
+
+    function addDiagLog(msg) {
+      const logs = document.getElementById('diag-logs');
+      if (!logs) return;
+      const line = document.createElement('div');
+      const time = new Date().toLocaleTimeString('pt-PT');
+      line.textContent = `[${time}] ${msg}`;
+      logs.appendChild(line);
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    // =========================================================================
+    // 3. RENDERIZAÇÃO DAS ETAPAS DO WINDOWS OOBE (0 a 8)
+    // =========================================================================
+    function renderStep() {
+      const container = document.getElementById('oobe-content');
+      const stepIndicator = document.getElementById('step-indicator');
+      const diagStep = document.getElementById('diag-step');
+      if (stepIndicator) stepIndicator.textContent = `Etapa ${state.step} de 8`;
+      if (diagStep) diagStep.textContent = state.step;
+
+      container.innerHTML = '';
+      const wrapper = document.createElement('div');
+      wrapper.className = 'flex-1 flex flex-col justify-between oobe-step-enter';
+
+      switch (state.step) {
+        case 0: // Boot / Só um momento...
+          wrapper.innerHTML = `
+            <div class="flex-1 flex flex-col items-center justify-center text-center py-12 space-y-6">
+              <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold tracking-wide uppercase">
+                wpelimioobe • Inicialização do Sistema
+              </div>
+              <div class="win-spinner"></div>
+              <div class="space-y-2">
+                <h1 class="text-2xl sm:text-3xl font-semibold text-slate-800">Só um momento...</h1>
+                <p class="text-sm text-slate-500 max-w-md">Preparando a experiência Out-Of-Box do <strong>wpelimioobe</strong>. Experimente pressionar <kbd class="px-1.5 py-0.5 bg-slate-100 border rounded text-xs">Shift + F10</kbd> a qualquer momento.</p>
+              </div>
+              <button onclick="goToStep(1)" class="mt-4 px-5 py-2 rounded-lg bg-[#0067c0] hover:bg-[#005a9e] text-white text-sm font-medium shadow-sm transition cursor-pointer">
+                Iniciar Agora &rarr;
+              </button>
+            </div>
+          `;
+          setTimeout(() => {
+            if (state.step === 0) goToStep(1);
+          }, 2400);
+          break;
+
+        case 1: // Boas-vindas com wpelimioobe e Região/País
+          const countries = ['Portugal', 'Brasil', 'Estados Unidos', 'Angola', 'Moçambique', 'Espanha', 'França', 'Reino Unido', 'Japão'];
+          wrapper.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center my-auto">
+              <div class="md:col-span-5 flex flex-col items-center md:items-start text-center md:text-left space-y-4">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#0067c0] to-sky-400 flex items-center justify-center shadow-lg text-white font-bold text-2xl">
+                  W
+                </div>
+                <div class="text-xs font-bold uppercase tracking-widest text-[#0067c0]">wpelimioobe</div>
+                <h1 class="text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
+                  Este é o país ou região certo?
+                </h1>
+                <p class="text-sm text-slate-500">
+                  Bem-vindo ao <strong>wpelimioobe</strong>. Selecione sua localização para ajustar formatos de data, hora e serviços regionais.
+                </p>
+              </div>
+
+              <div class="md:col-span-7 flex flex-col space-y-4">
+                <div class="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/70 max-h-64 overflow-y-auto divide-y divide-slate-200/70">
+                  ${countries.map(c => `
+                    <button onclick="selectRegion('${c}')" class="w-full text-left px-4 py-3 text-sm flex items-center justify-between transition cursor-pointer ${state.region === c ? 'bg-[#0067c0] text-white font-semibold' : 'hover:bg-blue-50 text-slate-700'}">
+                      <span>${c}</span>
+                      ${state.region === c ? '<span>✓</span>' : ''}
+                    </button>
+                  `).join('')}
+                </div>
+                <div class="flex justify-end pt-2">
+                  <button onclick="nextStep()" class="px-8 py-2.5 rounded-lg bg-[#0067c0] hover:bg-[#005a9e] text-white font-semibold text-sm shadow-sm transition cursor-pointer">
+                    Sim
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+          break;
+
+        case 2: // Layout do Teclado
+          const layouts = [
+            'Português (Portugal ABNT/ISO)',
+            'Português (Brasil ABNT2)',
+            'Inglês (Estados Unidos - Internacional)',
+            'Espanhol (Espanha)',
+            'Francês (AZERTY)'
+          ];
+          wrapper.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center my-auto">
+              <div class="md:col-span-5 flex flex-col items-center md:items-start text-center md:text-left space-y-4">
+                <div class="w-16 h-16 rounded-2xl bg-sky-100 text-[#0067c0] flex items-center justify-center text-3xl shadow-xs">
+                  ⌨️
+                </div>
+                <div class="text-xs font-bold uppercase tracking-widest text-[#0067c0]">wpelimioobe • Entrada</div>
+                <h1 class="text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
+                  Este é o layout de teclado ou método de entrada certo?
+                </h1>
+                <p class="text-sm text-slate-500">
+                  Se você também usa outro layout de teclado, poderá adicioná-lo a seguir.
+                </p>
+              </div>
+
+              <div class="md:col-span-7 flex flex-col space-y-4">
+                <div class="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/70 max-h-60 overflow-y-auto divide-y divide-slate-200/70">
+                  ${layouts.map(l => `
+                    <button onclick="selectKeyboard('${l}')" class="w-full text-left px-4 py-3 text-sm flex items-center justify-between transition cursor-pointer ${state.keyboard === l ? 'bg-[#0067c0] text-white font-semibold' : 'hover:bg-blue-50 text-slate-700'}">
+                      <span>${l}</span>
+                      ${state.keyboard === l ? '<span>✓</span>' : ''}
+                    </button>
+                  `).join('')}
+                </div>
+
+                <label class="flex items-center gap-2.5 text-xs sm:text-sm text-slate-600 cursor-pointer pt-1">
+                  <input type="checkbox" ${state.secondKeyboard ? 'checked' : ''} onchange="state.secondKeyboard = this.checked; sfx.click();" class="rounded text-[#0067c0] w-4 h-4" />
+                  <span>Adicionar um segundo layout de teclado (Inglês EUA)</span>
+                </label>
+
+                <div class="flex items-center justify-between pt-2">
+                  <button onclick="prevStep()" class="px-5 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-sm transition cursor-pointer">
+                    Voltar
+                  </button>
+                  <button onclick="nextStep()" class="px-8 py-2.5 rounded-lg bg-[#0067c0] hover:bg-[#005a9e] text-white font-semibold text-sm shadow-sm transition cursor-pointer">
+                    Sim
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+          break;
+
+        case 3: // Conexão de Rede + OOBE\BYPASSNRO
+          const networks = [
+            { name: 'wpelimioobe_5G_Fiber', signal: 'Excelente', secure: true },
+            { name: 'Casa_WiFi_Mesh', signal: 'Bom', secure: true },
+            { name: 'iPhone de Visitante', signal: 'Médio', secure: true },
+            { name: 'Cafe_Free_Hotspot', signal: 'Fraco', secure: false }
+          ];
+          wrapper.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center my-auto">
+              <div class="md:col-span-5 flex flex-col items-center md:items-start text-center md:text-left space-y-4">
+                <div class="w-16 h-16 rounded-2xl bg-blue-100 text-[#0067c0] flex items-center justify-center text-3xl">
+                  🌐
+                </div>
+                <div class="text-xs font-bold uppercase tracking-widest text-[#0067c0]">wpelimioobe • Rede</div>
+                <h1 class="text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
+                  Vamos conectar você a uma rede
+                </h1>
+                <p class="text-sm text-slate-500">
+                  Você precisará de uma conexão com a Internet para continuar configurando o dispositivo (ou use o famoso comando <code class="bg-slate-100 px-1 rounded text-xs">oobe\\bypassnro</code> no CMD).
+                </p>
+              </div>
+
+              <div class="md:col-span-7 flex flex-col space-y-4">
+                <div class="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/70 divide-y divide-slate-200/70">
+                  ${networks.map(n => {
+                    const isConn = state.wifiConnected && state.wifiName === n.name;
+                    return `
+                      <div class="px-4 py-3 flex items-center justify-between ${isConn ? 'bg-blue-50/90' : 'hover:bg-white'}">
+                        <div>
+                          <div class="font-semibold text-sm text-slate-800 flex items-center gap-2">
+                            <span>📶 ${n.name}</span>
+                            ${n.secure ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">Segura</span>' : ''}
+                          </div>
+                          <div class="text-xs text-slate-500">${isConn ? 'Conectado, segura' : 'Sinal: ' + n.signal}</div>
+                        </div>
+                        <button onclick="connectWifi('${n.name}')" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${isConn ? 'bg-emerald-600 text-white' : 'bg-[#0067c0] hover:bg-[#005a9e] text-white'}">
+                          ${isConn ? 'Conectado ✓' : 'Conectar'}
+                        </button>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-2">
+                  <button onclick="prevStep()" class="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-sm transition cursor-pointer">
+                    Voltar
+                  </button>
+
+                  <div class="flex items-center gap-2 ml-auto">
+                    ${state.bypassNRO ? `
+                      <button onclick="skipInternetOffline()" class="px-4 py-2 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-semibold text-xs sm:text-sm border border-emerald-300 transition cursor-pointer">
+                        Não tenho internet (BypassNRO)
+                      </button>
+                    ` : `
+                      <button onclick="showBypassHint()" class="px-3 py-2 rounded-lg text-slate-400 hover:text-slate-600 text-xs underline cursor-pointer" title="Dica secreta">
+                        Sem internet?
+                      </button>
+                    `}
+
+                    <button onclick="nextStep()" ${!state.wifiConnected ? 'disabled' : ''} class="px-7 py-2.5 rounded-lg font-semibold text-sm transition ${state.wifiConnected ? 'bg-[#0067c0] hover:bg-[#005a9e] text-white shadow-sm cursor-pointer' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}">
+                      Avançar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+          break;
+
+        case 4: // Contrato de Licença (EULA)
+          wrapper.innerHTML = `
+            <div class="flex flex-col space-y-5 my-auto">
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-blue-100 text-[#0067c0] flex items-center justify-center text-2xl">📜</div>
+                <div>
+                  <div class="text-xs font-bold uppercase tracking-widest text-[#0067c0]">wpelimioobe • Termos Legais</div>
+                  <h1 class="text-xl sm:text-2xl font-semibold text-slate-900">Examine o Contrato de Licença</h1>
+                </div>
+              </div>
+
+              <div class="h-56 overflow-y-auto p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-3 leading-relaxed select-text">
+                <p class="font-bold text-slate-800">TERMOS DE LICENÇA PARA SOFTWARE MICROSOFT WINDOWS &amp; WPELIMIOOBE</p>
+                <p>Última atualização: Novembro de 2026 • Edição Interativa wpelimioobe</p>
+                <p>1. <strong>VISÃO GERAL.</strong> Estes termos de licença constituem um acordo entre você e o ecossistema wpelimioobe. Eles se aplicam ao software simulado acima e a quaisquer segredos ocultos (Easter Eggs) descobertos durante a instalação.</p>
+                <p>2. <strong>DIREITOS DE INSTALAÇÃO E USO.</strong> Você tem o direito de explorar todos os atalhos clássicos do Windows OOBE, incluindo Shift+F10, OOBE\\BYPASSNRO, Ctrl+Shift+D, Ctrl+Shift+J e o truque da conta bloqueada no@thankyou.com.</p>
+                <p>3. <strong>PRIVACIDADE E TELEMETRIA.</strong> O wpelimioobe respeita totalmente a sua privacidade. Todos os dados permanecem localmente na memória do seu navegador.</p>
+                <p>4. <strong>ACEITAÇÃO.</strong> Ao clicar em "Aceitar", você concorda em prosseguir com a configuração do seu computador.</p>
+              </div>
+
+              <div class="flex items-center justify-between pt-2">
+                <button onclick="prevStep()" class="px-5 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-sm transition cursor-pointer">
+                  Voltar
+                </button>
+                <button onclick="nextStep()" class="px-8 py-2.5 rounded-lg bg-[#0067c0] hover:bg-[#005a9e] text-white font-semibold text-sm shadow-sm transition cursor-pointer">
+                  Aceitar
+                </button>
+              </div>
+            </div>
+          `;
+          break;
+
+        case 5: // Conta Microsoft vs Conta Local (no@thankyou.com!)
+          wrapper.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center my-auto">
+              <div class="md:col-span-5 flex flex-col items-center md:items-start text-center md:text-left space-y-4">
+                <div class="w-16 h-16 rounded-2xl bg-blue-100 text-[#0067c0] flex items-center justify-center text-3xl">
+                  👤
+                </div>
+                <div class="text-xs font-bold uppercase tracking-widest text-[#0067c0]">wpelimioobe • Conta</div>
+                <h1 class="text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
+                  ${state.isLocalAccount ? 'Quem vai usar este dispositivo?' : 'Vamos adicionar sua conta Microsoft'}
+                </h1>
+                <p class="text-sm text-slate-500">
+                  ${state.isLocalAccount
+                    ? 'Você está criando uma Conta Local offline no wpelimioobe!'
+                    : 'Entre com sua conta Microsoft ou experimente digitar <code class="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-semibold">no@thankyou.com</code> para ativar o famoso truque da conta bloqueada.'}
+                </p>
+              </div>
+
+              <div class="md:col-span-7 flex flex-col space-y-4">
+                ${state.isLocalAccount ? `
+                  <div class="space-y-3 bg-slate-50 p-5 rounded-xl border border-slate-200">
+                    <label class="block text-xs font-semibold text-slate-700">Digite seu nome de usuário local</label>
+                    <input id="local-user-input" type="text" value="${state.accountName}" placeholder="Ex: Admin, João, wpelimioobe..." class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:border-[#0067c0] outline-none text-sm bg-white" />
+                    <p class="text-xs text-emerald-700 font-medium">✓ Modo Conta Local Offline Ativado</p>
+                  </div>
+                  <div class="flex items-center justify-between pt-2">
+                    <button onclick="prevStep()" class="px-5 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-sm cursor-pointer">Voltar</button>
+                    <button onclick="submitLocalAccount()" class="px-8 py-2.5 rounded-lg bg-[#0067c0] hover:bg-[#005a9e] text-white font-semibold text-sm shadow-sm cursor-pointer">Avançar</button>
+                  </div>
+                ` : `
+                  <div class="space-y-3 bg-slate-50 p-5 rounded-xl border border-slate-200">
+                    <label class="block text-xs font-semibold text-slate-700">E-mail, telefone ou Skype</label>
+                    <input id="ms-email-input" type="email" value="${state.accountEmail}" placeholder="alguem@exemplo.com ou no@thankyou.com" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:border-[#0067c0] outline-none text-sm bg-white" />
+                    <label class="block text-xs font-semibold text-slate-700 pt-1">Senha</label>
+                    <input id="ms-pass-input" type="password" placeholder="••••••••" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:border-[#0067c0] outline-none text-sm bg-white" />
+                    <div id="ms-account-feedback" class="hidden text-xs p-2.5 rounded-lg bg-red-50 border border-red-200 text-red-700"></div>
+                  </div>
+                  <div class="flex flex-wrap items-center justify-between gap-2 pt-2">
+                    <button onclick="prevStep()" class="px-5 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-sm cursor-pointer">Voltar</button>
+                    <button onclick="submitMicrosoftAccount()" class="px-8 py-2.5 rounded-lg bg-[#0067c0] hover:bg-[#005a9e] text-white font-semibold text-sm shadow-sm cursor-pointer">Entrar</button>
+                  </div>
+                `}
+              </div>
+            </div>
+          `;
+          break;
+
+        case 6: // Criar um PIN (Windows Hello)
+          wrapper.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center my-auto">
+              <div class="md:col-span-5 flex flex-col items-center md:items-start text-center md:text-left space-y-4">
+                <div class="w-16 h-16 rounded-2xl bg-blue-100 text-[#0067c0] flex items-center justify-center text-3xl">
+                  🔢
+                </div>
+                <div class="text-xs font-bold uppercase tracking-widest text-[#0067c0]">wpelimioobe • Windows Hello</div>
+                <h1 class="text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
+                  Criar um PIN
+                </h1>
+                <p class="text-sm text-slate-500">
+                  Um PIN do Windows Hello é rápido, seguro e fica armazenado apenas neste dispositivo <strong>wpelimioobe</strong>.
+                </p>
+              </div>
+
+              <div class="md:col-span-7 flex flex-col space-y-4">
+                <div class="space-y-3 bg-slate-50 p-5 rounded-xl border border-slate-200">
+                  <label class="block text-xs font-semibold text-slate-700">Novo PIN (mínimo 4 dígitos)</label>
+                  <input id="pin-input" type="password" maxlength="8" inputmode="numeric" value="${state.pin}" placeholder="Ex: 1234" class="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 focus:border-[#0067c0] outline-none text-lg tracking-widest bg-white" />
+                  <p class="text-xs text-slate-500">Olá, <strong>${state.accountName || 'Usuário'}</strong>! Defina seu código de acesso rápido.</p>
+                </div>
+
+                <div class="flex items-center justify-between pt-2">
+                  <button onclick="prevStep()" class="px-5 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-sm cursor-pointer">Voltar</button>
+                  <button onclick="submitPin()" class="px-8 py-2.5 rounded-lg bg-[#0067c0] hover:bg-[#005a9e] text-white font-semibold text-sm shadow-sm cursor-pointer">OK</button>
+                </div>
+              </div>
+            </div>
+          `;
+          break;
+
+        case 7: // Configurações de Privacidade
+          const privItems = [
+            { key: 'location', title: 'Localização', desc: 'Permite que o wpelimioobe e aplicativos usem sua localização para mapas e clima.' },
+            { key: 'diagnostics', title: 'Dados de diagnóstico', desc: 'Envia dados opcionais de diagnóstico para ajudar a melhorar o sistema.' },
+            { key: 'ads', title: 'ID de anúncio', desc: 'Permite que os aplicativos usem seu ID de anúncio para experiências personalizadas.' },
+            { key: 'tailored', title: 'Experiências personalizadas', desc: 'Oferece dicas e recomendações personalizadas com base nos dados de diagnóstico.' }
+          ];
+          wrapper.innerHTML = `
+            <div class="flex flex-col space-y-4 my-auto">
+              <div>
+                <div class="text-xs font-bold uppercase tracking-widest text-[#0067c0]">wpelimioobe • Privacidade</div>
+                <h1 class="text-2xl font-semibold text-slate-900">Escolha as configurações de privacidade do seu dispositivo</h1>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                ${privItems.map(item => `
+                  <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/70 flex items-start justify-between gap-3">
+                    <div class="space-y-1">
+                      <div class="font-semibold text-sm text-slate-800">${item.title}</div>
+                      <p class="text-xs text-slate-500 leading-relaxed">${item.desc}</p>
+                    </div>
+                    <div class="relative inline-block w-11 h-6 shrink-0 mt-0.5">
+                      <input type="checkbox" id="priv-${item.key}" ${state.privacy[item.key] ? 'checked' : ''} onchange="state.privacy['${item.key}'] = this.checked; sfx.click();" class="win-toggle-checkbox sr-only" />
+                      <label for="priv-${item.key}" class="win-toggle-label block w-11 h-6 rounded-full bg-slate-300 border border-slate-400 cursor-pointer transition-colors relative">
+                        <span class="win-toggle-dot absolute left-0.5 top-0.5 w-4.5 h-4.5 w-[18px] h-[18px] rounded-full bg-slate-700 transition-transform"></span>
+                      </label>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+
+              <div class="flex items-center justify-between pt-2">
+                <button onclick="prevStep()" class="px-5 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-sm cursor-pointer">Voltar</button>
+                <button onclick="startPreparingSequence()" class="px-8 py-2.5 rounded-lg bg-[#0067c0] hover:bg-[#005a9e] text-white font-semibold text-sm shadow-sm cursor-pointer">Aceitar</button>
+              </div>
+            </div>
+          `;
+          break;
+      }
+
+      container.appendChild(wrapper);
+    }
+
+    // =========================================================================
+    // 4. NAVEGAÇÃO E AÇÕES DAS ETAPAS
+    // =========================================================================
+    function goToStep(stepNum) {
+      state.step = stepNum;
+      sfx.nextStep();
+      addDiagLog(`[NAV] Mudando para Etapa ${stepNum}`);
+      renderStep();
+    }
+
+    function nextStep() {
+      if (state.step < 7) {
+        goToStep(state.step + 1);
+      } else {
+        startPreparingSequence();
+      }
+    }
+
+    function prevStep() {
+      if (state.step > 1) {
+        goToStep(state.step - 1);
+      }
+    }
+
+    function selectRegion(r) {
+      state.region = r;
+      sfx.click();
+      renderStep();
+    }
+
+    function selectKeyboard(k) {
+      state.keyboard = k;
+      sfx.click();
+      renderStep();
+    }
+
+    function connectWifi(name) {
+      state.wifiConnected = true;
+      state.wifiName = name;
+      document.getElementById('diag-net').textContent = name;
+      sfx.nextStep();
+      addDiagLog(`[NET] Conectado a "${name}"`);
+      renderStep();
+    }
+
+    function showBypassHint() {
+      sfx.click();
+      unlockEasterEgg('cmd', 'Dica Secreta de Rede!', 'Pressione Shift + F10 para abrir o CMD e digite: oobe\\bypassnro');
+      openCmd();
+    }
+
+    function skipInternetOffline() {
+      state.isLocalAccount = true;
+      goToStep(4);
+    }
+
+    function submitMicrosoftAccount() {
+      const emailInput = document.getElementById('ms-email-input');
+      const feedback = document.getElementById('ms-account-feedback');
+      const email = (emailInput ? emailInput.value : '').trim().toLowerCase();
+
+      if (!email) {
+        sfx.error();
+        feedback.textContent = 'Por favor, insira um endereço de e-mail.';
+        feedback.classList.remove('hidden');
+        return;
+      }
+
+      // EASTER EGG CLÁSSICO: no@thankyou.com ou a@a.com
+      if (email === 'no@thankyou.com' || email === 'a@a.com' || email === 'no@thanks.com') {
+        sfx.error();
+        feedback.innerHTML = '<strong>Algo deu errado.</strong> Esta conta foi bloqueada devido a muitas tentativas. Redirecionando para criação de <strong>Conta Local</strong>...';
+        feedback.classList.remove('hidden');
+        unlockEasterEgg('nothankyou', 'Truque no@thankyou.com!', 'Você bloqueou a Conta Microsoft propositalmente e desbloqueou a Conta Local!');
+        setTimeout(() => {
+          state.isLocalAccount = true;
+          renderStep();
+        }, 1600);
+        return;
+      }
+
+      state.accountEmail = email;
+      state.accountName = email.split('@')[0];
+      state.isLocalAccount = false;
+      nextStep();
+    }
+
+    function submitLocalAccount() {
+      const input = document.getElementById('local-user-input');
+      const name = (input ? input.value : '').trim();
+      state.accountName = name || 'Usuario_wpelimioobe';
+      nextStep();
+    }
+
+    function submitPin() {
+      const input = document.getElementById('pin-input');
+      const val = (input ? input.value : '').trim();
+      if (val.length < 4) {
+        sfx.error();
+        input.classList.add('border-red-500');
+        return;
+      }
+      state.pin = val;
+      nextStep();
+    }
+
+    // Etapa 8: Sequência "Olá / Estamos preparando tudo para você"
+    function startPreparingSequence() {
+      state.step = 8;
+      sfx.nextStep();
+      const prepScreen = document.getElementById('preparing-screen');
+      const title = document.getElementById('preparing-title');
+      const sub = document.getElementById('preparing-subtitle');
+
+      prepScreen.classList.remove('hidden');
+
+      const messages = [
+        { t: `Olá, ${state.accountName || 'bem-vindo'}`, s: 'Estamos preparando tudo para você.' },
+        { t: 'wpelimioobe OS', s: 'Isso pode levar alguns minutos.' },
+        { t: 'Aplicando configurações', s: 'Otimizando sua área de trabalho e recursos...' },
+        { t: 'Quase pronto!', s: 'Mantenha o computador ligado.' }
+      ];
+
+      let i = 0;
+      title.textContent = messages[0].t;
+      sub.textContent = messages[0].s;
+
+      const interval = setInterval(() => {
+        i++;
+        if (i < messages.length) {
+          title.textContent = messages[i].t;
+          sub.textContent = messages[i].s;
+        } else {
+          clearInterval(interval);
+          prepScreen.classList.add('hidden');
+          showDesktop();
+        }
+      }, 1700);
+    }
+
+    function showDesktop() {
+      sfx.winStartup();
+      const desktop = document.getElementById('desktop-screen');
+      document.getElementById('desktop-username').textContent = state.accountName || 'Usuário';
+      document.getElementById('desktop-account-type').textContent = state.isLocalAccount ? 'Conta Local Offline' : `Conta Microsoft (${state.accountEmail || 'Conectada'})`;
+      document.getElementById('desktop-easter-summary').textContent = `${state.discoveredEggs.size} / 7`;
+      desktop.classList.remove('hidden');
+    }
+
+    function restartOOBE() {
+      document.getElementById('desktop-screen').classList.add('hidden');
+      document.getElementById('preparing-screen').classList.add('hidden');
+      state.step = 0;
+      state.wifiConnected = false;
+      state.isLocalAccount = false;
+      renderStep();
+    }
+
+    // =========================================================================
+    // 5. LÓGICA DOS EASTER EGGS (CMD, BYPASSNRO, CORTANA, DIAGNÓSTICO, ETC.)
+    // =========================================================================
+    function openCmd() {
+      const cmdWin = document.getElementById('cmd-window');
+      cmdWin.classList.remove('hidden');
+      unlockEasterEgg('cmd');
+      setTimeout(() => document.getElementById('cmd-input').focus(), 50);
+    }
+
+    function closeCmd() {
+      document.getElementById('cmd-window').classList.add('hidden');
+    }
+
+    function printCmd(text, colorClass = 'text-[#cccccc]') {
+      const out = document.getElementById('cmd-output');
+      const div = document.createElement('div');
+      div.className = colorClass;
+      div.textContent = text;
+      out.appendChild(div);
+      out.scrollTop = out.scrollHeight;
+    }
+
+    function activateBypassNRO() {
+      state.bypassNRO = true;
+      document.getElementById('bypass-badge').classList.remove('hidden');
+      document.getElementById('diag-bypass').textContent = 'true';
+      unlockEasterEgg('bypassnro');
+      closeCmd();
+      goToStep(3);
+    }
+
+    function jumpToLocalAccount() {
+      state.isLocalAccount = true;
+      unlockEasterEgg('localonly');
+      closeCmd();
+      goToStep(5);
+    }
+
+    // Processamento de comandos no CMD
+    document.getElementById('cmd-input').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        const raw = this.value.trim();
+        const cmd = raw.toLowerCase();
+        this.value = '';
+
+        printCmd(`X:\\Sources>${raw}`, 'text-white');
+
+        if (!cmd) return;
+
+        if (cmd === 'oobe\\bypassnro' || cmd === 'bypassnro' || cmd === 'oobe/bypassnro') {
+          printCmd('Executando OOBE\\BYPASSNRO... Reiniciando fluxo OOBE com suporte offline...', 'text-emerald-400');
+          setTimeout(() => activateBypassNRO(), 900);
+        } else if (cmd === 'start ms-cxh:localonly' || cmd === 'ms-cxh:localonly') {
+          printCmd('Iniciando Cloud Experience Host em modo LocalOnly...', 'text-emerald-400');
+          setTimeout(() => jumpToLocalAccount(), 800);
+        } else if (cmd === 'taskmgr') {
+          printCmd('Abrindo Gerenciador de Tarefas...', 'text-sky-400');
+          document.getElementById('taskmgr-window').classList.remove('hidden');
+        } else if (cmd === 'regedit') {
+          printCmd('HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\OOBE', 'text-amber-300');
+          printCmd('  BypassNRO REG_DWORD = ' + (state.bypassNRO ? '0x00000001' : '0x00000000'), 'text-slate-300');
+          printCmd('  wpelimioobe_build REG_SZ = "26100.1742"', 'text-slate-300');
+        } else if (cmd === 'ipconfig') {
+          printCmd('Adaptador Ethernet/Wi-Fi wpelimioobe:', 'text-sky-300');
+          printCmd(state.wifiConnected ? `   Endereço IPv4 . . . . . . . . : 192.168.1.142 (${state.wifiName})` : '   Estado da Mídia . . . . . . . : Mídia desconectada');
+        } else if (cmd === 'ver') {
+          printCmd('Microsoft Windows [Versão 10.0.26100.1742 - wpelimioobe]');
+        } else if (cmd === 'help') {
+          printCmd('Comandos OOBE disponíveis:', 'text-amber-300');
+          printCmd('  oobe\\bypassnro          - Ignora exigência de internet na instalação');
+          printCmd('  start ms-cxh:localonly  - Pula direto para criação de conta local');
+          printCmd('  taskmgr                 - Abre o Gerenciador de Tarefas');
+          printCmd('  regedit                 - Consulta chaves de registro do OOBE');
+          printCmd('  ipconfig / ver / cls / exit');
+        } else if (cmd === 'cls') {
+          document.getElementById('cmd-output').innerHTML = '';
+        } else if (cmd === 'exit') {
+          closeCmd();
+        } else {
+          printCmd(`'${raw}' não é reconhecido como um comando interno ou externo.`, 'text-red-400');
+        }
+      }
+    });
+
+    function killProcess(procName) {
+      sfx.error();
+      addDiagLog(`[TASKMGR] Processo encerrado: ${procName}`);
+      document.getElementById('taskmgr-window').classList.add('hidden');
+      if (procName === 'WWAHost.exe') {
+        goToStep(0);
+      } else if (procName === 'Cortana') {
+        closeCortana();
+      }
+    }
+
+    function openDiagnostics() {
+      document.getElementById('diag-panel').classList.remove('hidden');
+      unlockEasterEgg('diagnostics');
+    }
+
+    function openAutopilot() {
+      document.getElementById('autopilot-modal').classList.remove('hidden');
+      unlockEasterEgg('autopilot');
+    }
+
+    function applyAutopilotProfile() {
+      document.getElementById('autopilot-modal').classList.add('hidden');
+      state.accountName = 'Admin_Corporativo_wpelimioobe';
+      state.isLocalAccount = false;
+      state.accountEmail = 'admin@wpelimioobe-corp.com';
+      startPreparingSequence();
+    }
+
+    function installPPKG() {
+      document.getElementById('provisioning-modal').classList.add('hidden');
+      state.wifiConnected = true;
+      state.wifiName = 'wpelimioobe_Corp_Provisioned';
+      state.accountName = 'Provisioned_User';
+      state.isLocalAccount = true;
+      startPreparingSequence();
+    }
+
+    // Cortana & Síntese de Voz (Web Speech API)
+    function triggerCortana() {
+      const widget = document.getElementById('cortana-widget');
+      const speechEl = document.getElementById('cortana-speech-text');
+      widget.classList.remove('hidden');
+      sfx.cortanaChime();
+      unlockEasterEgg('cortana_prov', 'Cortana & Narrador OOBE!', 'Você ativou a assistente de voz clássica do Windows OOBE!');
+
+      const stepTexts = {
+        0: 'Olá! Eu sou a Cortana, e estou aqui para ajudar você a configurar o wpelimioobe.',
+        1: `Estamos na seleção de região. Atualmente ${state.region} está selecionado.`,
+        2: `Escolha seu layout de teclado. O padrão atual é ${state.keyboard}.`,
+        3: 'Vamos conectar você a uma rede Wi-Fi, ou use o comando bypassnro no terminal.',
+        4: 'Por favor, examine e aceite o contrato de licença do wpelimioobe.',
+        5: 'Entre com sua conta Microsoft, ou digite no@thankyou.com para usar uma conta local.',
+        6: 'Crie um PIN numérico rápido para proteger seu dispositivo.',
+        7: 'Ajuste suas preferências de privacidade e clique em Aceitar para finalizar.',
+        8: 'Estamos preparando sua área de trabalho wpelimioobe!'
+      };
+
+      const msg = stepTexts[state.step] || stepTexts[0];
+      speechEl.textContent = `"${msg}"`;
+
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(msg);
+        utter.lang = 'pt-PT';
+        utter.rate = 1.05;
+        window.speechSynthesis.speak(utter);
+      }
+    }
+
+    function closeCortana() {
+      document.getElementById('cortana-widget').classList.add('hidden');
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    }
+
+    // 5 cliques rápidos no Logo Windows / wpelimioobe
+    document.getElementById('brand-logo-btn').addEventListener('click', () => {
+      sfx.click();
+      state.logoClicks++;
+      clearTimeout(state.logoClickTimer);
+      state.logoClickTimer = setTimeout(() => { state.logoClicks = 0; }, 1500);
+
+      if (state.logoClicks >= 5) {
+        state.logoClicks = 0;
+        unlockEasterEgg('cortana_prov', 'Provisionamento Oculto (5 Cliques)!', 'Você clicou 5 vezes no logo Windows/wpelimioobe e abriu o menu de provisionamento!');
+        document.getElementById('provisioning-modal').classList.remove('hidden');
+      }
+    });
+
+    // Atalhos globais de teclado do Windows OOBE
+    document.addEventListener('keydown', (e) => {
+      // Shift + F10 -> CMD
+      if (e.shiftKey && e.key === 'F10') {
+        e.preventDefault();
+        openCmd();
+      }
+      // Ctrl + Shift + D -> Diagnóstico
+      if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+        e.preventDefault();
+        openDiagnostics();
+      }
+      // Ctrl + Shift + J -> Autopilot / Kiosk
+      if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j')) {
+        e.preventDefault();
+        openAutopilot();
+      }
+      // Ctrl + Win/Meta + Enter -> Cortana / Narrador
+      if (e.ctrlKey && (e.metaKey || e.altKey) && e.key === 'Enter') {
+        e.preventDefault();
+        triggerCortana();
+      }
+    });
+
+    // =========================================================================
+    // 6. GUIA DE EASTER EGGS & CONTROLES DE INTERFACE
+    // =========================================================================
+    function openEasterGuide() {
+      sfx.click();
+      const modal = document.getElementById('easter-guide-modal');
+      const list = document.getElementById('easter-list-container');
+      list.innerHTML = EASTER_EGGS_META.map(egg => {
+        const found = state.discoveredEggs.has(egg.id);
+        return `
+          <div class="p-3.5 rounded-xl border ${found ? 'border-emerald-300 bg-emerald-50/70' : 'border-slate-200 bg-slate-50'} flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="text-base">${found ? '✅' : '🔒'}</span>
+                <span class="font-bold text-slate-900">${egg.title}</span>
+              </div>
+              <div class="text-xs font-mono-cmd text-blue-700 bg-blue-100/70 inline-block px-2 py-0.5 rounded">${egg.shortcut}</div>
+              <p class="text-xs text-slate-600">${egg.desc}</p>
+            </div>
+            <button onclick="closeEasterGuide(); (${egg.action.toString()})()" class="shrink-0 px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold transition cursor-pointer">
+              ${egg.actionLabel}
+            </button>
+          </div>
+        `;
+      }).join('');
+      modal.classList.remove('hidden');
+    }
+
+    function closeEasterGuide() {
+      document.getElementById('easter-guide-modal').classList.add('hidden');
+    }
+
+    function openShortcutModal() {
+      openEasterGuide();
+    }
+
+    function toggleHighContrast() {
+      sfx.click();
+      state.highContrast = !state.highContrast;
+      const card = document.getElementById('oobe-card');
+      if (state.highContrast) {
+        card.classList.add('ring-4', 'ring-amber-400', 'bg-slate-950', 'text-white');
+        card.classList.remove('bg-white/95');
+      } else {
+        card.classList.remove('ring-4', 'ring-amber-400', 'bg-slate-950', 'text-white');
+        card.classList.add('bg-white/95');
+      }
+    }
+
+    document.getElementById('easter-guide-btn').addEventListener('click', openEasterGuide);
+
+    document.getElementById('sound-toggle-btn').addEventListener('click', () => {
+      sfx.enabled = !sfx.enabled;
+      document.getElementById('sound-icon').textContent = sfx.enabled ? '🔊' : '🔇';
+      document.getElementById('sound-text').textContent = sfx.enabled ? 'Som Ativo' : 'Mudo';
+      if (sfx.enabled) sfx.click();
+    });
+
+    // Atualiza relógio da barra de tarefas
+    setInterval(() => {
+      const clock = document.getElementById('desktop-clock');
+      if (clock) {
+        clock.textContent = new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+      }
+    }, 1000);
+
+    // Inicialização
+    window.onload = () => {
+      renderStep();
+    };
+  </script>
+</body>
+</html>
